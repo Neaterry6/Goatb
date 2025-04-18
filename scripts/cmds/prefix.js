@@ -1,4 +1,4 @@
-?CMD install prefix.js module.exports = {
+ module.exports = {
   config: {
     name: "prefix",
     version: "1.1.0",
@@ -31,7 +31,7 @@
 🔹 \`${botPrefix}file\` - Retrieve files from the bot's directory
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-💐 CREATED BY:🌸 AYANFE🌝
+💐 CREATED BY:🌸 AYANFE🌝 
 ━━━━━━━━━━━━━━━━━━━━━━━
 🎨 *Crafted with dedication, creativity, and love.*
 ━━━━━━━━━━━━━━━━━━━━━━━
