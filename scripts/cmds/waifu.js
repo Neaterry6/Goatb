@@ -1,60 +1,45 @@
-const axios = require('axios');
+const axios = require("axios");
 
 module.exports = {
-	config: {
-		name: "waifu",
-		aliases: ["wife"],
-		version: "1.0",
-		author: "Your Dad",
-		countDown: 6,
-		role: 0,
-		shortDescription: "get random waifu",
-		longDescription: "Get waifu neko: waifu, neko, shinobu, megumin, bully, cuddle, cry, kiss, lick, hug, awoo, pat, smug, bonk, yeet, blush, smile, wave, highfive, handhold, nom, bite, glomp, slap, kill, kick, happy, wink, poke, dance, cringe",
-		category: "anime",
-		guide: "{pn} {{<name>}}"
-	},
+  config: {
+    name: "waifu",
+    version: "1.1.1",
+    author: "Ayanfe",
+    description: "Fetch a random waifu image",
+    category: "fun",
+    guide: {
+      en: "{pn}"
+    },
+    usages: "/waifu",
+    cooldowns: 5,
+    dependencies: {
+      axios: ""
+    }
+  },
 
-	onStart: async function ({ message, args }) {
-		const name = args.join(" ");
-		if (!name)
+  onStart: async function ({ message }) {
+    try {
+      // Fetch waifu image from API
+      const response = await axios.get("https://kaiz-apis.gleeze.com/api/waifu");
 
-			try {
-				let res = await axios.get(`https://api.waifu.pics/sfw/waifu`)
+      // Check if the response is valid and contains an image URL
+      const waifuData = response.data;
+      if (!waifuData || !waifuData.imageUrl) {
+        return message.reply("❌ Unable to fetch a waifu image at the moment. Please try again later.");
+      }
 
-
-				let res2 = res.data
-				let img = res2.url
-
-				const form = {
-					body: `   「 𝔀𝓪𝓲𝓯𝓾  」   `
-
-				};
-				if (img)
-					form.attachment = await global.utils.getStreamFromURL(img);
-				message.reply(form);
-			} catch (e) {
-				message.reply(` Not Found`)
-			}
-
-
-		else {
-
-			try {
-				let res = await axios.get(`https://api.waifu.pics/sfw/${name}`)
-
-
-				let res2 = res.data
-				let img1 = res2.url
-
-				const form = {
-					body: `   「 𝔀𝓪𝓲𝓯𝓾  」   `
-
-				};
-				if (img1)
-					form.attachment = await global.utils.getStreamFromURL(img1);
-				message.reply(form);
-			} catch (e) { message.reply(` No waifu  \category: waifu, neko, shinobu, megumin, bully, cuddle, cry, kiss, lick, hug, awoo, pat, smug, bonk, yeet, blush, smile, wave, highfive, handhold, nom, bite, glomp, slap, kill, kick, happy, wink, poke, dance, cringe `) }
-
-		}
-	}
-}
+      // Send the waifu image to the user
+      await message.reply({
+        body: "✨ Here's your random waifu image! Enjoy~",
+        attachment: await axios({
+          url: waifuData.imageUrl,
+          method: "GET",
+          responseType: "stream"
+        }).then(res => res.data)
+      });
+    } catch (error) {
+      console.error("Error fetching waifu image:", error.message);
+      message.reply("❌ *Oops!* Something went wrong while fetching the waifu image. Please try again later.");
+    }
+  }
+};
