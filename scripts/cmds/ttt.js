@@ -1,6 +1,3 @@
-
-const { createReply, waitForUserMove } = require('./utils'); // Assuming you have a utility module for handling replies and user moves
-
 module.exports = {
   config: {
     name: "tictactoe",
@@ -15,23 +12,20 @@ module.exports = {
     },
     usages: "/tictactoe @mention",
     cooldowns: 5,
-    dependencies: {
-      "axios": "",
-      "fs": "",
-      "path": ""
-    }
+    dependencies: {}
   },
-  onStart: async function({ message, api, args, event }) {
+
+  onStart: async function ({ message, api, args, event }) {
     const gameBoard = [
       ['-', '-', '-'],
       ['-', '-', '-'],
       ['-', '-', '-']
     ];
     let currentPlayer = 'X';
-    let opponent = event.messageReply?.mentions[0];
+    let opponent = Object.keys(event.mentions)[0]; // Retrieve the mentioned user
 
     if (!opponent) {
-      return createReply(message, "Please mention someone to play with. Usage: /tictactoe @player");
+      return message.reply("❌ Please mention someone to play with. Usage: /tictactoe @player");
     }
 
     const renderBoard = () => {
@@ -40,17 +34,33 @@ module.exports = {
 
     const checkWin = () => {
       for (let i = 0; i < 3; i++) {
-        if (gameBoard[i][0] === currentPlayer && gameBoard[i][1] === currentPlayer && gameBoard[i][2] === currentPlayer) {
+        if (
+          gameBoard[i][0] === currentPlayer &&
+          gameBoard[i][1] === currentPlayer &&
+          gameBoard[i][2] === currentPlayer
+        ) {
           return true;
         }
-        if (gameBoard[0][i] === currentPlayer && gameBoard[1][i] === currentPlayer && gameBoard[2][i] === currentPlayer) {
+        if (
+          gameBoard[0][i] === currentPlayer &&
+          gameBoard[1][i] === currentPlayer &&
+          gameBoard[2][i] === currentPlayer
+        ) {
           return true;
         }
       }
-      if (gameBoard[0][0] === currentPlayer && gameBoard[1][1] === currentPlayer && gameBoard[2][2] === currentPlayer) {
+      if (
+        gameBoard[0][0] === currentPlayer &&
+        gameBoard[1][1] === currentPlayer &&
+        gameBoard[2][2] === currentPlayer
+      ) {
         return true;
       }
-      if (gameBoard[0][2] === currentPlayer && gameBoard[1][1] === currentPlayer && gameBoard[2][0] === currentPlayer) {
+      if (
+        gameBoard[0][2] === currentPlayer &&
+        gameBoard[1][1] === currentPlayer &&
+        gameBoard[2][0] === currentPlayer
+      ) {
         return true;
       }
       return false;
@@ -62,37 +72,45 @@ module.exports = {
 
     const makeMove = async (row, col) => {
       if (gameBoard[row][col] !== '-') {
-        await createReply(message, "Invalid move! The cell is already taken.");
-        return;
+        await message.reply("❌ Invalid move! The cell is already taken.");
+        return false;
       }
 
       gameBoard[row][col] = currentPlayer;
 
       if (checkWin()) {
-        await createReply(message, `Player ${currentPlayer} wins!\n${renderBoard()}`);
+        await message.reply(`🎉 Player ${currentPlayer} wins!\n\n${renderBoard()}`);
         return true;
       }
 
       if (checkDraw()) {
-        await createReply(message, `It's a draw!\n${renderBoard()}`);
+        await message.reply(`🤝 It's a draw!\n\n${renderBoard()}`);
         return true;
       }
 
       currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-      await createReply(message, `Current board:\n${renderBoard()}\n\nIt's ${currentPlayer}'s turn!`);
+      await message.reply(`Current board:\n${renderBoard()}\n\n🎮 It's ${currentPlayer}'s turn!`);
       return false;
     };
 
-    await createReply(message, `Tic-Tac-Toe game started between @${event.senderID} and @${opponent}!\n\n${renderBoard()}\n\n${currentPlayer}'s turn!`);
+    // Start the game
+    await message.reply(`🎲 Tic-Tac-Toe game started between @${event.senderID} and @${opponent}!\n\n${renderBoard()}\n\n🎮 ${currentPlayer}'s turn!`);
 
     let gameEnded = false;
 
     while (!gameEnded) {
-      const nextMove = await waitForUserMove(api, event, currentPlayer, opponent);
-      const [row, col] = nextMove.split(' ').map(Number);
+      // Wait for the next move
+      await message.reply("Please send your move in the format: row,col (e.g., 1,1)");
+
+      const filter = (msg) => {
+        return msg.senderID === currentPlayer === 'X' ? event.senderID : opponent;
+      };
+
+      const collected = await api.listenMqtt(filter);
+      const [row, col] = collected.body.split(',').map(Number);
 
       if (row < 0 || row > 2 || col < 0 || col > 2) {
-        await createReply(message, "Invalid move! Please choose a row and column between 0 and 2.");
+        await message.reply("❌ Invalid move! Please choose a row and column between 0 and 2.");
         continue;
       }
 
