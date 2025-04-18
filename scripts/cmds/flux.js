@@ -1,69 +1,74 @@
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+const axios = require("axios");
+
+async function generateImage(prompt) {
+  try {
+    const response = await axios({
+      method: "get",
+      url: `https://bk9.fun/ai/magicstudio`,
+      params: {
+        prompt: prompt,
+      },
+      responseType: "stream",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", error.response ? error.response.data : error.message);
+    throw new Error("Failed to connect to the image generation API. Please try again later.");
+  }
+}
 
 module.exports = {
   config: {
-    name: "flux",
+    name: "vgen",
     aliases: ["fl"],
-    version: "1.0.0",
-    author: "ayanfe",
-    role: 0,
-    shortDescription: "Generate an image based on a prompt using flux API created by Lance",
-    longDescription: "generate image with flux API created by Lance ",
-    category: "AI",
-    guide: {
-      en: "{pn} <prompt>"
+    version: "1.0",
+    author: "AYANFE",
+    longDescription: {
+      en: "Generate images using the Magic Studio API.",
     },
-    usages: "/flux <prompt>",
-    cooldowns: 5,
-    dependencies: {
-      "axios": "",
-      "fs": "",
-      "path": ""
-    }
+    category: "image",
+    guide: {
+      en: "{pn} <prompt>",
+    },
   },
-  onStart: async function({ message, api, args, event }) {
-    if (args.length === 0) return message.reply("Please provide a prompt to generate an image.");
 
+  onStart: async function ({ message, args, api, event }) {
     const prompt = args.join(" ");
-    const apiUrl = `http://158.69.118.209:20147/api/flux?prompt=${encodeURIComponent(prompt)}`;
+    const messageID = event.messageID;
+
+    // Provide feedback while processing
+    api.setMessageReaction("⏳", messageID, (err) => {
+      if (err) console.error("Failed to set reaction:", err);
+    }, true);
+
+    if (!prompt) {
+      return message.reply("Please provide a prompt to generate an image.");
+    }
 
     try {
-      const response = await axios.get(apiUrl);
+      const imageStream = await generateImage(prompt);
 
-      if (!response.data || !response.data.imageUrl) {
-        return message.reply("Failed to generate image, please try again.");
-      }
-
-      const imageUrl = response.data.imageUrl;
-      const imagePath = path.resolve(__dirname, 'cache', `${Date.now()}.jpg`);
-
-      const writer = fs.createWriteStream(imagePath);
-      const imageResponse = await axios({
-        url: imageUrl,
-        method: 'GET',
-        responseType: 'stream'
-      });
-
-      imageResponse.data.pipe(writer);
-
-      writer.on('finish', () => {
-        message.reply({
-          body: `Here is the generated image for your prompt: "${prompt}"`,
-          attachment: fs.createReadStream(imagePath)
-        }, () => {
-          fs.unlinkSync(imagePath);
-        });
-      });
-
-      writer.on('error', (err) => {
-        message.reply("Error downloading the image.");
-      });
-
+      // Reply with the generated image
+      message.reply(
+        {
+          body: `Here is your generated image for: "${prompt}"`,
+          attachment: imageStream,
+        },
+        () => {
+          api.setMessageReaction("✅", messageID, (err) => {
+            if (err) console.error("Failed to set reaction:", err);
+          }, true);
+        }
+      );
     } catch (error) {
-      console.error("Error:", error);
-      message.reply("An error occurred while processing your request.");
+      console.error("Image Generation Error:", error);
+
+      // Update the reaction to failure
+      api.setMessageReaction("❌", messageID, (reactionError) => {
+        if (reactionError) console.error("Failed to set reaction:", reactionError);
+      }, true);
+
+      return message.reply(error.message || "Failed to generate image.");
     }
-  }
+  },
 };
