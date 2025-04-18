@@ -1,28 +1,46 @@
+const axios = require("axios");
+
 module.exports = {
   config: {
     name: "uptime",
-    aliases: ["up", "upt"],
-    version: "1.0",
-    author: "XyryllPanget",
+    aliases: ["up", "ontime"],
+    version: "1.1",
+    author: "ayanfe",
     role: 0,
-    shortDescription: {
-      en: "Displays the uptime of the bot."
-    },
-    longDescription: {
-      en: "Displays the amount of time that the bot has been running for."
-    },
-    category: "System",
+    shortDescription: "Show bot uptime",
+    longDescription: "Displays how long the bot has been running since last start, with a beautiful floral design.",
+    category: "utility",
     guide: {
-      en: "Use {p}uptime to display the uptime of the bot."
+      en: "{pn}"
     }
   },
-  onStart: async function ({ api, event, args }) {
-    const uptime = process.uptime();
-    const seconds = Math.floor(uptime % 60);
-    const minutes = Math.floor((uptime / 60) % 60);
-    const hours = Math.floor((uptime / (60 * 60)) % 24);
-    const days = Math.floor(uptime / (60 * 60 * 24));
-    const uptimeString = `${hours} hours ${minutes} minutes ${seconds} second`;
-    api.sendMessage(`hello user, the ncs bot has been running for ${uptimeString}.`, event.threadID);
+
+  onStart: async function ({ message }) {
+    const time = process.uptime();
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
+    const seconds = Math.floor(time % 60);
+
+    const uptime = `🌸 BOT UPTIME 🌸
+━━━━━━━━━━━━━━━━━━
+⏰ Uptime: ${hours}h ${minutes}m ${seconds}s
+🌼 Status: Online & Blooming
+🌺 Powered by: GoatBot v2
+━━━━━━━━━━━━━━━━━━`;
+
+    const imageURL = "https://files.catbox.moe/06kqsu.jpg"; // Replace with your preferred image URL
+
+    let attachment = null;
+    try {
+      const img = await axios.get(imageURL, { responseType: "stream" });
+      attachment = img.data;
+    } catch (error) {
+      console.error("Failed to load image:", error.message);
+    }
+
+    return message.reply({
+      body: uptime,
+      attachment: attachment || undefined // Send image only if successfully loaded
+    });
   }
-}
+};
